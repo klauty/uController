@@ -1,2 +1,2 @@
 
-const char *menu_setup[] = {"Celsius","Fahrenheit","Kelvin" }; // id=1
+const char *menu_setup[] = {"Criar Agendamento","Configurar relogio","Listar Agendamentos","<- Voltar" }; // id=1

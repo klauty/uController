@@ -94,9 +94,9 @@
 
 
 // REPRAP_DISCOUNT_SMART_CONTROLLER
-#define D31                             31  //BTN_EN1
-#define D33                             33  // BTN_EN2
-#define D35                             35  //BTN_ENC
+#define BTN_EN1                             31  //BTN_EN1
+#define BTN_EN2                            33  // BTN_EN2
+#define BTN_ENC                            35  //BTN_ENC
 #define BEEPER_PIN                      37 
 #define SD_DETECT_PIN                   49 
 #define KILL_PIN                        41
