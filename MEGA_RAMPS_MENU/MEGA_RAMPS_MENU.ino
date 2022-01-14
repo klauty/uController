@@ -85,7 +85,8 @@ void loop() {
     inputString = "";
     stringComplete = false;
   }
-  
+
+  //desenhando telas
   switch(tela_atual){
     case PRINCIPAL :
       u8g2.firstPage();
@@ -123,51 +124,55 @@ void loop() {
     last = value;
   }
 
-
+//logica para telas 
   ClickEncoder::Button b = encoder->getButton();
   if (b != ClickEncoder::Open) {
     switch (b){
       case ClickEncoder::Clicked:
-        Serial.println("ClickEncoder::Clicked");
-        if(!Running){
-          if(value == 0 ) {
-            menu_redraw_required = 1;
-            menuClick(value);
-             Serial.println("criar agendamento");
-          }
-          if(value == 1 ) {
-            menu_redraw_required = 1;
-            menuClick(value);
-             Serial.println("configurar relogio");
-          }
-          if(value == 2 ) {
-            menu_redraw_required = 1;
-            menuClick(value);
-             Serial.println("Listar Agendamentos");
-          }
-          if(value == 3 ) {
-            menu_redraw_required = 1;
-            menuClick(value);
-             Serial.println("Voltar");
-          }
-        } 
+       Serial.println("ClickEncoder::Clicked");
+        switch(tela_atual){
+          case PRINCIPAL:
+            tela_atual = MENU;
+          break;
+          case MENU:
+            if(value == 0 ){
+              Serial.println("criar agendamento");
+            }
+            if(value == 1 ){
+              Serial.println("configurar relogio");
+            }
+            if(value == 2 ){
+              Serial.println("Listar Agendamentos");
+            }
+            if(value == 3 ){
+              Serial.println("Voltar");
+            }
+           
+          break;
+          case AJUSTAR_RELOGIO:
+          break;
+          
+          case CRIAR_AGENDAMENTO:
+          break;
+
+          case LISTAR_AGENDAMENTOS:
+          break;
+        }
         break;
       case ClickEncoder::Pressed:
         Serial.println("ClickEncoder::Pressed");
         break;
       case ClickEncoder::DoubleClicked:
-        Running = 0;
+         tela_atual = tela_atual == MENU ? PRINCIPAL : MENU;
         Serial.println("ClickEncoder::DoubleClicked");
         break;
+      }
     }
-  }
-
-}
+ }
 
 
 // -----------------------
 // MENU HANDLING ROUTINES
-// ----------------------
 void drawMenu(const char *menu[], uint8_t menu_len) {
   uint8_t i, h;
   u8g2_uint_t w, d;
@@ -187,6 +192,7 @@ void drawMenu(const char *menu[], uint8_t menu_len) {
     }
   }
 }
+// ----------------------
 
 
 void updateMenu(int i) {
