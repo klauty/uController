@@ -1,29 +1,36 @@
 
 #include <math.h>
 #include <SPI.h>
-#include <U8g2lib.h>     /* LCD */
+#include <U8g2lib.h>
 #include "ClickEncoder.h"
 #include "Menu.h"
-#include "Thermistor.h"
 #include "pin_map.h"
 #include "RTClib.h"
 
 
 bool Running = true;
-int units = 0; // Celcius
 char *menu_current[20];
 uint8_t menu_item_current  = 0;
+uint8_t telaAtual  = 0;
 uint8_t menu_length_current  = 0;
 uint8_t menu_redraw_required = 0;
 int16_t last, value;                  // store position of encoder
+String inputString = "";         // a String to hold incoming data
+bool stringComplete = false;  // whether the string is complete
+
+enum Tela{
+  PRINCIPAL,
+  MENU,
+  AJUSTAR_RELOGIO,
+  CRIAR_AGENDAMENTO,
+  LISTAR_AGENDAMENTOS
+};
+
+Tela tela_atual = MENU;
 
 U8G2_ST7920_128X64_1_SW_SPI u8g2(U8G2_R0, DOGLCD_SCK , DOGLCD_MOSI, DOGLCD_CS ); // Initialize graphics controller
 ClickEncoder *encoder;                //Create instance of ClickEncoder class
 RTC_DS1307 rtc;
-
-
-// ----------------------------------------------------------------------------
-
 
 void setup() {
   Serial.begin(115200);
@@ -37,7 +44,6 @@ void setup() {
 
   // set up click encoder
   encoder = new ClickEncoder(BTN_EN2, BTN_EN1, BTN_ENC);
-   // encoder = new ClickEncoder(D33, D31, D35);
   last = -1;
 
   // initialize timers
@@ -54,9 +60,8 @@ void setup() {
   interrupts();             // enable all interrupts
 
 
-  // Menu splash screen
-  u8g2.begin(); // Write startup message to LCD
-  u8g2.setFontPosTop(); // references position to top of font
+  u8g2.begin(); 
+  u8g2.setFontPosTop();
   do {
     u8g2.setFont(u8g2_font_ncenB14_tr);
     u8g2.drawStr(10, 10, "Dinheiros!!");
@@ -73,38 +78,37 @@ ISR(TIMER2_COMPA_vect)
    encoder->service();
 }
 
-// ----------------------------------------------------------------------------
-
-
-
-
-
-
 void loop() {
-  if (Running) {
-    u8g2.firstPage();
-    do {
-      u8g2.setCursor(25, 35);
-      DateTime now = rtc.now();
-      u8g2.setFont(u8g2_font_fub17_tf);
-      u8g2.print(now.hour());
-      u8g2.print(':');
-      u8g2.print(now.minute());
-      u8g2.print(':');
-      u8g2.print(now.second());
-    } while ( u8g2.nextPage() );
-
-  } else {    //Draw Menu
-    if (menu_redraw_required != 0) {
+  if (stringComplete) {
+    Serial.println(inputString);
+    // clear the string:
+    inputString = "";
+    stringComplete = false;
+  }
+  
+  switch(tela_atual){
+    case PRINCIPAL :
+      u8g2.firstPage();
+      do {
+        u8g2.setCursor(25, 35);
+        DateTime now = rtc.now();
+        u8g2.setFont(u8g2_font_fub17_tf);
+        u8g2.print(now.hour());
+        u8g2.print(':');
+        u8g2.print(now.minute());
+        u8g2.print(':');
+        u8g2.print(now.second());
+      } while ( u8g2.nextPage() );
+      break;
+    case MENU :
       u8g2.firstPage();
       do  {
         drawMenu(menu_setup, *(&menu_setup + 1) - menu_setup  );
-      } while ( u8g2.nextPage() );
-      menu_redraw_required = 0;
-    }
+      } while ( u8g2.nextPage());
+      break;
   }
 
-  // ClickEncoder
+    // ClickEncoder
   value += encoder->getValue();
   if (value < 0) {
     value = 0;
@@ -115,7 +119,7 @@ void loop() {
   if (value != last) {
     Serial.print("Encoder Value: ");
     Serial.println(value);
-    updateMenu(value);                            // update menu bar
+    updateMenu(value);
     last = value;
   }
 
@@ -125,9 +129,27 @@ void loop() {
     switch (b){
       case ClickEncoder::Clicked:
         Serial.println("ClickEncoder::Clicked");
-        if (!Running && value == 3 ) {
-          menu_redraw_required = 1;
-          menuClick(value);
+        if(!Running){
+          if(value == 0 ) {
+            menu_redraw_required = 1;
+            menuClick(value);
+             Serial.println("criar agendamento");
+          }
+          if(value == 1 ) {
+            menu_redraw_required = 1;
+            menuClick(value);
+             Serial.println("configurar relogio");
+          }
+          if(value == 2 ) {
+            menu_redraw_required = 1;
+            menuClick(value);
+             Serial.println("Listar Agendamentos");
+          }
+          if(value == 3 ) {
+            menu_redraw_required = 1;
+            menuClick(value);
+             Serial.println("Voltar");
+          }
         } 
         break;
       case ClickEncoder::Pressed:
@@ -143,9 +165,9 @@ void loop() {
 }
 
 
-// ----------------------------------------------------------------------------
+// -----------------------
 // MENU HANDLING ROUTINES
-// ----------------------------------------------------------------------------
+// ----------------------
 void drawMenu(const char *menu[], uint8_t menu_len) {
   uint8_t i, h;
   u8g2_uint_t w, d;
@@ -172,11 +194,23 @@ void updateMenu(int i) {
   menu_redraw_required = 1;
 }
 
-
-
 void   menuClick( uint8_t _value) {
   Serial.print("menuClick\t");
   Serial.println(_value);
-  units = _value;
   Running = true;
+}
+
+
+void serialEvent() {
+  while (Serial.available()) {
+    // get the new byte:
+    char inChar = (char)Serial.read();
+    // add it to the inputString:
+    inputString += inChar;
+    // if the incoming character is a newline, set a flag so the main loop can
+    // do something about it:
+    if (inChar == '\n') {
+      stringComplete = true;
+    }
+  }
 }
